@@ -1,2 +1,2 @@
 # awesome-python-webapp
-blog demo for practise
+blog demo for practice
