@@ -2,7 +2,7 @@ import aiomysql
 import asyncio
 import logging
 
-async def create_pool(loop,**kw):
+async def create_pool(**kw):
     global __pool
     __pool = await aiomysql.create_pool(
         host = kw.get('host','localhost'),
@@ -14,11 +14,14 @@ async def create_pool(loop,**kw):
         autocommit = kw.get('autocommit',True),
         maxsize = kw.get('maxsize',10),
         minsize  = kw.get('minsize',1),
-        loop = loop
+        loop = asyncio.get_event_loop()
     )
     logging.info('create database connect pool...')
-    cnt = await execute('insert into user (id, name) values (2, Jack)',None)
-    print(cnt)
+    #test connect
+    # cnt = await execute('insert into user (id, name) values (?, ?)',(1,'Jack'))
+    # print(cnt)
+    # rs = await select('select * from user where id = %s',1)
+    # print(rs)
 
 async def select(sql,args,size = None):
     logging.log(logging.INFO,sql,args)
@@ -39,9 +42,7 @@ async def execute(sql,args):
     with (await __pool) as conn:
         try:
             cur = await conn.cursor()
-            sql = sql.replace('?','%s')
-            print(sql)
-            await cur.execute(sql,args)
+            await cur.execute(sql.replace('?','%s'),args)
             affected = cur.rowcount
             await cur.close()
         except BaseException as e:
@@ -62,8 +63,20 @@ class StringField(Field):
     def __init__(self,name = None,primary_key = False,default = None,ddl = 'varchar(100)'):
         super().__init__(name,ddl,primary_key,default)
 
-class IntegerField(Field):
-    def __init__(self,name = None,primary_key = False,default = None,ddl = 'bigint'):
+# class IntegerField(Field):
+#     def __init__(self,name = None,primary_key = False,default = None,ddl = 'bigint'):
+#         super().__init__(name,ddl,primary_key,default)
+
+class BooleanField(Field):
+    def __init__(self,name = None):
+        super().__init__(name,'tinyint(1)',False,None)
+
+class FloatField(Field):
+    def __init__(self,name = None,primary_key = False,default = None,ddl = 'double(1,3)'):
+        super().__init__(name,ddl,primary_key,default)
+
+class TextField(Field):
+    def __init__(self,name = None,primary_key = False,default = None,ddl = 'Text(100)'):
         super().__init__(name,ddl,primary_key,default)
 
 class ModelMetaclass(type):
@@ -101,7 +114,7 @@ class ModelMetaclass(type):
         attrs['__primary_key__'] = primaryKey
         attrs['__fields__'] = fields
         
-        def create_args_string():
+        def create_args_string(length):
             pass
 
         attrs['__select__'] = 'select %s,%s from %s' % (primaryKey,

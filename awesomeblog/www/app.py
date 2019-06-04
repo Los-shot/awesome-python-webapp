@@ -20,6 +20,6 @@ async def init():
     logging.info('server start at http://127.0.0.1:9000...')
 
 loop = asyncio.get_event_loop()
-tasks = [init(),sql.create_pool(loop,user = 'root',password = 'password',db = 'test')]
+tasks = [init(),sql.create_pool(user = 'root',password = 'password',db = 'test')]
 loop.run_until_complete(asyncio.wait(tasks))
 loop.run_forever()
