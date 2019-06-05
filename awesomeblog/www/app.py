@@ -7,6 +7,23 @@ from aiohttp import web
 
 import sql
 
+def get(path):
+
+    '''
+    Define decorator @get('/path')
+    '''
+
+    def decorator(func):
+        def wrapper(*args,**kw):
+            return func(*args,**kw)
+
+        wrapper.__method__ = 'GET'
+        wrapper.__route__ = path
+
+        return wrapper
+
+    return decorator
+
 def index(request):
     return web.Response(body = b'<h1>Awesome</h1>',content_type = 'text/html')
 
