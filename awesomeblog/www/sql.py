@@ -17,7 +17,7 @@ async def create_pool(**kw):
         loop = asyncio.get_event_loop()
     )
     logging.info('create database connect pool...')
-    print('-----create database connect pool')
+
     #test connect
     # cnt = await execute('insert into user (id, name) values (?, ?)',(1,'Jack'))
     # print(cnt)
@@ -51,8 +51,7 @@ async def execute(sql,args):
         return affected
 
 class Field(object):
-    def __init__(self,name,column_type,primary_key,default):
-        self.name = name
+    def __init__(self,column_type,primary_key,default):
         self.column_type = column_type
         self.primary_key = primary_key
         self.default = default
@@ -61,26 +60,26 @@ class Field(object):
         return '%s, %s:%s' % (self.__class__.__name__,self.column_type,self.name)
 
 class StringField(Field):
-    def __init__(self,name = None,primary_key = False,default = None,ddl = 'varchar(100)'):
-        super().__init__(name,ddl,primary_key,default)
+    def __init__(self,primary_key = False,default = None,ddl = 'varchar(100)'):
+        super().__init__(ddl,primary_key,default)
 
 class BooleanField(Field):
-    def __init__(self,name = None):
-        super().__init__(name,'tinyint(1)',False,None)
+    def __init__(self,default = False):
+        super().__init__('bool',False,default)
 
 class FloatField(Field):
-    def __init__(self,name = None,primary_key = False,default = None,ddl = 'double(1,3)'):
-        super().__init__(name,ddl,primary_key,default)
+    def __init__(self,primary_key = False,default = None):
+        super().__init__('real',primary_key,default)
 
 class TextField(Field):
-    def __init__(self,name = None,primary_key = False,default = None,ddl = 'Text(100)'):
-        super().__init__(name,ddl,primary_key,default)
+    def __init__(self,primary_key = False,default = None):
+        super().__init__('mediumtext',primary_key,default)
 
 class ModelMetaclass(type):
     def __new__(cls,name,bases,attrs):
         if name == 'Model':
             return type.__new__(cls,name,bases,attrs)
-        print('----create class',name)
+
         tableName = attrs.get('__table__',None) or name
         logging.info('found model: %s (table: %s)' % (name,tableName))
         mappings = dict()
@@ -89,6 +88,7 @@ class ModelMetaclass(type):
 
         for k,v in attrs.items():
             if isinstance(v,Field):
+                v.name = k
                 logging.info('  found mapping: %s ==>%s' % (k,v))
                 mappings[k] = v
                 if v.primary_key:
@@ -104,23 +104,28 @@ class ModelMetaclass(type):
         for k in mappings.keys():
             attrs.pop(k)
 
-        escaped_fields = list(map(lambda f:' %s ' % f,fields))
-        
+        escaped_fields = list(map(lambda f:'`%s`' % f,fields))
+
         attrs['__mappings__'] = mappings
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey
         attrs['__fields__'] = fields
         
         def create_args_string(length):
-            pass
+            ss = ''
+            if length >= 1:
+                ss = '%s'
+                for i in range(length-1):
+                    ss += ',%s'
+            return ss
 
-        attrs['__select__'] = 'select %s,%s from %s' % (primaryKey,
+        attrs['__select__'] = 'select `%s`,%s from `%s`' % (primaryKey,
             ','.join(escaped_fields),tableName)
-        attrs['__insert__'] = 'insert into %s (%s,%s) values (%s)' % (tableName,
+        attrs['__insert__'] = 'insert into `%s` (%s,`%s`) values (%s)' % (tableName,
             ','.join(escaped_fields),primaryKey,create_args_string(len(escaped_fields) + 1))
-        attrs['__update__'] = 'update %s set %s where %s = ?' % (tableName,
-            ','.join(map(lambda f:' %s=?' % (mappings.get(f).name or f),fields)),primaryKey)
-        attrs['__delete__'] = 'delete from %s where %s = ?' % (tableName,primaryKey)
+        attrs['__update__'] = 'update `%s` set %s where `%s` = ?' % (tableName,
+            ','.join(map(lambda f:'`%s`=?' % (mappings.get(f).name or f),fields)),primaryKey)
+        attrs['__delete__'] = 'delete from `%s` where `%s` = ?' % (tableName,primaryKey)
         
         return type.__new__(cls,name,bases,attrs)
 
@@ -142,6 +147,7 @@ class Model(dict,metaclass = ModelMetaclass):
 
     def getValueOrDefault(self,key):
         value = getattr(self,key,None)
+        
         if value is None:
             field = self.__mappings__[key]
 
@@ -149,13 +155,13 @@ class Model(dict,metaclass = ModelMetaclass):
                 value = field.default() if callable(field.default) else field.default
                 logging.debug('using default value for %s: %s' % (key,str(value)))
                 setattr(self,key,value)
-            
-            return value
+        
+        return value
 
     @classmethod
     async def find(cls,pk):#find  by primary_key
         ' find object by primary key.'
-        rs = await select('%s where %s = ?' % (cls.__select__,cls.__primary_key__),[pk],1)
+        rs = await select('%s where `%s` = ?' % (cls.__select__,cls.__primary_key__),[pk],1)
         if len(rs) == 0:
             return None
         return cls(**rs[0])

@@ -39,10 +39,10 @@ class Comment(Model):
     created_at = FloatField(default = time.time)
 
 ##test##
-async def test():
-    await sql.create_pool(user = 'root',password = 'password',db = 'test')
-    # u = User(name = 'Jack',email = 'jack@163.com',passwd = '12345678',image = 'about:blank')
-    # await u.save()
+# async def test():
+#     await sql.create_pool(user = 'root',password = 'password',db = 'awesome')
+#     u = User(name = 'Jim',email = 'Jim@163.com',passwd = '87654321',image = 'about:blank')
+#     await u.save()
 
-import asyncio
-asyncio.get_event_loop().run_until_complete(test())
+# import asyncio
+# asyncio.get_event_loop().run_until_complete(test())
