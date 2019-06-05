@@ -17,6 +17,7 @@ async def create_pool(**kw):
         loop = asyncio.get_event_loop()
     )
     logging.info('create database connect pool...')
+    print('-----create database connect pool')
     #test connect
     # cnt = await execute('insert into user (id, name) values (?, ?)',(1,'Jack'))
     # print(cnt)
@@ -63,10 +64,6 @@ class StringField(Field):
     def __init__(self,name = None,primary_key = False,default = None,ddl = 'varchar(100)'):
         super().__init__(name,ddl,primary_key,default)
 
-# class IntegerField(Field):
-#     def __init__(self,name = None,primary_key = False,default = None,ddl = 'bigint'):
-#         super().__init__(name,ddl,primary_key,default)
-
 class BooleanField(Field):
     def __init__(self,name = None):
         super().__init__(name,'tinyint(1)',False,None)
@@ -83,7 +80,7 @@ class ModelMetaclass(type):
     def __new__(cls,name,bases,attrs):
         if name == 'Model':
             return type.__new__(cls,name,bases,attrs)
-
+        print('----create class',name)
         tableName = attrs.get('__table__',None) or name
         logging.info('found model: %s (table: %s)' % (name,tableName))
         mappings = dict()
