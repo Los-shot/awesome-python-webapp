@@ -4,9 +4,9 @@ import asyncio, os, json, time
 from datetime import datetime
 
 from aiohttp import web
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import sql
-from webframe import add_routes
+import sql,handlerframe
 
 async def logger_factory(app,handler):
     async def logger(request):
@@ -30,22 +30,23 @@ async def response_factory(app,handler):
         if isinstance(r,dict):
             pass
         
-def index(request):
-    return web.Response(body = b'<h1>Awesome</h1>',content_type = 'text/html')
+def init_jinja2():
+    env = Environment(
+        loader = FileSystemLoader('templates'),
+        autoescape = select_autoescape(['html', 'xml'])
+    )
+    env.filters['datetimeformat'] = datetimeformat
 
-def init_jinja2(app,filter = None):
-    pass
+def datetimeformat(value, format='%H:%M / %d-%m-%Y'):
+    return value.strftime(format)
 
-def datetime_filter():
-    pass
-
-def add_static():
+def add_static(app):
     pass
 
 async def init():
     app = web.Application(middlewares = [logger_factory,response_factory])
-    init_jinja2(app,filter = dict(datetime = datetime_filter))
-    add_routes(app,'handlers')
+    init_jinja2()
+    handlerframe.add_routes(app,'handlers')
     add_static(app)
     runner = web.AppRunner(app)
     await runner.setup()
@@ -54,6 +55,6 @@ async def init():
     logging.info('server start at http://127.0.0.1:9000...')
 
 loop = asyncio.get_event_loop()
-tasks = [init(),sql.create_pool(user = 'root',password = 'password',db = 'test')]
+tasks = [init(),sql.create_pool(user = 'root',password = 'password',db = 'awesome')]
 loop.run_until_complete(asyncio.wait(tasks))
 loop.run_forever()

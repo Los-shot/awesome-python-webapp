@@ -22,9 +22,8 @@ class RequestHandler():
         self._app = app
         self._func = fn
 
-    async def __call__(self,request):
-        kw = {'param1':'param1'}
-        return await self._func(**kw)
+    async def __call__(self,request,**kw):
+        return await self._func(request,**kw)
 
 def add_route(app,fn):
     method = getattr(fn,'__method__',None)
