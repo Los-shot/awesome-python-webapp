@@ -8,28 +8,30 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import sql,handlerframe
 
-async def logger_factory(app,handler):
-    async def logger(request):
-        logging.info('Request: %s %s' % (request.method,request.path))
-        return await handler(request)
-    return logger
+@web.middleware
+async def logger_factory(request,handler):
+    logging.info('Request: %s %s' % (request.method,request.path))
+    return await handler(request)
+    
 
-async def response_factory(app,handler):
-    async def response(request):
-        r = await handler(request)
-        if isinstance(r,web.StreamResponse):
-            return r
-        if isinstance(r,bytes):
-            resp = web.Resource(body = r)
-            resp.content_type = 'application/octet-stream'
-            return resp
-        if isinstance(r,str):
-            resp = web.Response(body = r.encode('utf-8'))
-            resp.content_type = 'text/html:charset=utf-8'
-            return resp
-        if isinstance(r,dict):
-            pass
-        
+@web.middleware
+async def response_factory(request,handler):
+    r = await handler(request)
+    if isinstance(r,web.StreamResponse):
+        return r
+    if isinstance(r,bytes):
+        resp = web.Response(body = r)
+        resp.content_type = 'application/octet-stream'
+        return resp
+    if isinstance(r,str):
+        resp = web.Response(body = r.encode('utf-8'))
+        resp.content_type = 'text/html:charset=utf-8'
+        return resp
+    if isinstance(r,dict):
+        resp = web.Response(body = r'<h1>awesome</h1>')
+        resp.content_type = 'text/html'
+        return resp
+    
 def init_jinja2():
     env = Environment(
         loader = FileSystemLoader('templates'),
