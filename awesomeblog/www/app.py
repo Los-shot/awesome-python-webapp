@@ -8,11 +8,12 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import sql,handlerframe
 
+env:Environment
+
 @web.middleware
 async def logger_factory(request,handler):
     logging.info('Request: %s %s' % (request.method,request.path))
     return await handler(request)
-    
 
 @web.middleware
 async def response_factory(request,handler):
@@ -28,13 +29,17 @@ async def response_factory(request,handler):
         resp.content_type = 'text/html:charset=utf-8'
         return resp
     if isinstance(r,dict):
-        resp = web.Response(body = r'<h1>awesome</h1>')
+        template = env.get_template(r['__template__'])
+        body = template.render(r)
+        resp = web.Response(body = body)
         resp.content_type = 'text/html'
         return resp
     
 def init_jinja2():
+    global env
+    path = os.path.join(os.path.abspath('www'),'templates')
     env = Environment(
-        loader = FileSystemLoader('templates'),
+        loader = FileSystemLoader(path),
         autoescape = select_autoescape(['html', 'xml'])
     )
     env.filters['datetimeformat'] = datetimeformat
