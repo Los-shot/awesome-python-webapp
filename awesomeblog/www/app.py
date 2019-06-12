@@ -45,7 +45,8 @@ def init_jinja2():
     env.filters['datetimeformat'] = datetimeformat
 
 def datetimeformat(value, format='%H:%M / %d-%m-%Y'):
-    return value.strftime(format)
+    date = datetime.fromtimestamp(value)
+    return date.strftime(format)
 
 def add_static(app):
     pass
