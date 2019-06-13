@@ -1,4 +1,4 @@
-import asyncio,inspect,logging
+import asyncio,inspect,logging,functools
 
 def get(path):
 
@@ -7,6 +7,7 @@ def get(path):
     '''
 
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args,**kw):
             return func(*args,**kw)
 
