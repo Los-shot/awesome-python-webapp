@@ -20,6 +20,7 @@ class A():
         self.name = name
         self.age = age
 
-@get('/api/users')
+@get('/api/users/{name}')
 def get_api_users(request):
-    return {'users':[A('jack',12),A('mike',20)]}
+    name = request.match_info.get('name','nobody')
+    return {'users':[A(name,12),A('mike',20)]}
