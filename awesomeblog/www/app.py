@@ -26,13 +26,17 @@ async def response_factory(request,handler):
         return resp
     if isinstance(r,str):
         resp = web.Response(body = r.encode('utf-8'))
-        resp.content_type = 'text/html:charset=utf-8'
+        resp.content_type = 'text/html;charset=utf-8'
         return resp
     if isinstance(r,dict):
-        template = env.get_template(r['__template__'])
-        body = template.render(r)
-        resp = web.Response(body = body)
-        resp.content_type = 'text/html'
+        if r.get('__template__',None):
+            template = env.get_template(r['__template__'])
+            body = template.render(r)
+            resp = web.Response(body = body)
+            resp.content_type = 'text/html'
+        else:
+            resp = web.Response(body = json.dumps(r,default = lambda obj:obj.__dict__))
+            resp.content_type = 'application/json;charset=utf-8'
         return resp
     
 def init_jinja2():

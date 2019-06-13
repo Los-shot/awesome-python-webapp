@@ -14,3 +14,12 @@ def index(request):
         '__template__': 'blogs.html',
         'blogs': blogs
     }
+
+class A():
+    def __init__(self,name,age):
+        self.name = name
+        self.age = age
+
+@get('/api/users')
+def get_api_users(request):
+    return {'users':[A('jack',12),A('mike',20)]}
