@@ -1,6 +1,6 @@
 import logging; logging.basicConfig(level=logging.INFO)#带分号的代码
 
-import asyncio, os, json, time
+import asyncio, os, json, time, pathlib
 from datetime import datetime
 
 from aiohttp import web
@@ -53,7 +53,8 @@ def datetimeformat(value, format='%H:%M / %d-%m-%Y'):
     return date.strftime(format)
 
 def add_static(app):
-    pass
+    PROJECT_PATH = pathlib.Path(__file__).parent
+    app.router.add_static('/static/',PROJECT_PATH / 'static')
 
 async def init():
     app = web.Application(middlewares = [logger_factory,response_factory])

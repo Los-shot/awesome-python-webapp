@@ -24,3 +24,9 @@ class A():
 def get_api_users(request):
     name = request.match_info.get('name','nobody')
     return {'users':[A(name,12),A('mike',20)]}
+
+@get('/login')
+def register(request):
+    return {
+        '__template__':'register.html'
+    }
