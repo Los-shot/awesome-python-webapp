@@ -1,4 +1,4 @@
-from handlerframe import get
+from handlerframe import get,post,parse_post_params
 from model import Blog
 import time
 
@@ -24,6 +24,11 @@ class A():
 def get_api_users(request):
     name = request.match_info.get('name','nobody')
     return {'users':[A(name,12),A('mike',20)]}
+
+@post('/api/register/user')
+async def api_register_user(request):
+    params = await parse_post_params(request)
+    return {'users':[A(params.get('name'),12),A('mike',20)]}
 
 @get('/login')
 def register(request):

@@ -1,4 +1,5 @@
 import asyncio,inspect,logging,functools
+from urllib.parse import unquote
 
 def get(path):
 
@@ -12,6 +13,24 @@ def get(path):
             return func(*args,**kw)
 
         wrapper.__method__ = 'GET'
+        wrapper.__route__ = path
+
+        return wrapper
+
+    return decorator
+
+def post(path):
+
+    '''
+    Define decorator @post('/path')
+    '''
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args,**kw):
+            return func(*args,**kw)
+
+        wrapper.__method__ = 'POST'
         wrapper.__route__ = path
 
         return wrapper
@@ -52,3 +71,16 @@ def add_routes(app,module_name):
             path = getattr(fn,'__route__',None)
             if method and path:
                 add_route(app,fn)
+
+async def parse_post_params(request):
+    sb = await request.content.read()
+    s = sb.decode('utf-8')
+    s = unquote(s)
+    segs = s.split('&')
+    obj = {}
+
+    for k in segs:
+        seg = k.split('=')
+        obj[seg[0]] = seg[1]
+
+    return obj
