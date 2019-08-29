@@ -84,3 +84,12 @@ async def parse_post_params(request):
         obj[seg[0]] = seg[1]
 
     return obj
+
+class APIError(Exception):
+    pass
+
+class APIValueError(APIError):
+    pass
+
+
+        

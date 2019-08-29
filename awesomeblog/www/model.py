@@ -38,11 +38,19 @@ class Comment(Model):
     content = TextField()
     created_at = FloatField(default = time.time)
 
-##test##
+##-----------------------test---------------------------##
 # async def test():
 #     await sql.create_pool(user = 'root',password = 'password',db = 'awesome')
-#     u = User(name = 'Jim',email = 'Jim@163.com',passwd = '87654321',image = 'about:blank')
-#     await u.save()
+
+    ## new a User
+    # u = User(name = 'Jim',email = 'Jim@163.com',passwd = '87654321',image = 'about:blank')
+    # await u.save()
+    ## find a User
+    # u = await User.find('001559787420784740c61235a5d4d53ab1b0a9eff452f82000')
+    # print(u)
+    ## find users
+    # us = await User.findAll('email','Jim@163.com')
+    # print(us)
 
 # import asyncio
 # asyncio.get_event_loop().run_until_complete(test())

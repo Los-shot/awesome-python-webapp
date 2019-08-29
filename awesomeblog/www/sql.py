@@ -159,7 +159,7 @@ class Model(dict,metaclass = ModelMetaclass):
         return value
 
     @classmethod
-    async def find(cls,pk):#find  by primary_key
+    async def find(cls,pk):
         ' find object by primary key.'
         rs = await select('%s where `%s` = ?' % (cls.__select__,cls.__primary_key__),[pk],1)
         if len(rs) == 0:
@@ -173,8 +173,14 @@ class Model(dict,metaclass = ModelMetaclass):
         if rows != 1:
             logging.warn('failed to insert record: affected rows: %s' % rows)
 
-    async def findAll(self):
-        pass
+    @classmethod
+    async def findAll(cls,k,v):
+        ' find objects by kv pair'
+        rs = await select('%s where `%s` = ?' % (cls.__select__,k),[v])
+        objs = []
+        for v in rs:
+            objs.append(cls(**v))
+        return objs
     
     async def findNumber(self):
         pass

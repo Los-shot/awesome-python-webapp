@@ -1,6 +1,6 @@
-from handlerframe import get,post,parse_post_params
-from model import Blog
-import time
+from handlerframe import get,post,parse_post_params,APIError,APIValueError
+from model import Blog,User
+import time,re
 
 @get('/')
 def index(request):
@@ -25,9 +25,30 @@ def get_api_users(request):
     name = request.match_info.get('name','nobody')
     return {'users':[A(name,12),A('mike',20)]}
 
+_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
+_RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
+
 @post('/api/register/user')
 async def api_register_user(request):
     params = await parse_post_params(request)
+
+    name:str = params.get('name',None)
+    if not name or not name.strip():
+        raise APIValueError('name')
+    
+    email:str = params.get('email',None)
+    if not email or not _RE_EMAIL.match(email):
+        raise APIValueError('email')
+
+    passwd:str = params.get('passwd',None)
+    if not passwd or not _RE_SHA1.match(passwd):
+        raise APIValueError('passwd')
+
+    users = await User.findAll('email', [email])
+
+    if len(users) > 0:
+        raise APIError('register:failed', 'email', 'Email is already in use.')
+
     return {'users':[A(params.get('name'),12),A('mike',20)]}
 
 @get('/login')
