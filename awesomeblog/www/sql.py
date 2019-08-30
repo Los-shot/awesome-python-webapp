@@ -25,7 +25,7 @@ async def create_pool(**kw):
     # print(rs)
 
 async def select(sql,args,size = None):
-    logging.log(logging.INFO,sql,args)
+    logging.log(logging.INFO,sql.replace('?','%s'),args)
     global __pool
     with (await __pool) as conn:
         cur = await conn.cursor(aiomysql.DictCursor)
@@ -161,7 +161,7 @@ class Model(dict,metaclass = ModelMetaclass):
     @classmethod
     async def find(cls,pk):
         ' find object by primary key.'
-        rs = await select('%s where `%s` = ?' % (cls.__select__,cls.__primary_key__),[pk],1)
+        rs = await select('%s where `%s` = ?' % (cls.__select__,cls.__primary_key__),pk,1)
         if len(rs) == 0:
             return None
         return cls(**rs[0])
@@ -176,7 +176,7 @@ class Model(dict,metaclass = ModelMetaclass):
     @classmethod
     async def findAll(cls,k,v):
         ' find objects by kv pair'
-        rs = await select('%s where `%s` = ?' % (cls.__select__,k),[v])
+        rs = await select('%s where `%s` = ?' % (cls.__select__,k),v)
         objs = []
         for v in rs:
             objs.append(cls(**v))

@@ -1,6 +1,14 @@
 from handlerframe import get,post,parse_post_params,APIError,APIValueError
-from model import Blog,User
-import time,re
+from model import next_id,Blog,User
+import time, re, hashlib, json
+from aiohttp import web
+
+COOKIE_NAME = 'awesome'
+MAX_AGE = 60 * 10
+SECRET_KEY = 'laliga'
+
+def user2cookie(user,max_age):
+    pass
 
 @get('/')
 def index(request):
@@ -30,6 +38,8 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 @post('/api/register/user')
 async def api_register_user(request):
+    cookie = request.cookies.get('aka')
+    print('cookie:',cookie)
     params = await parse_post_params(request)
 
     name:str = params.get('name',None)
@@ -44,12 +54,21 @@ async def api_register_user(request):
     if not passwd or not _RE_SHA1.match(passwd):
         raise APIValueError('passwd')
 
-    users = await User.findAll('email', [email])
+    users = await User.findAll('email', email)
 
     if len(users) > 0:
         raise APIError('register:failed', 'email', 'Email is already in use.')
 
-    return {'users':[A(params.get('name'),12),A('mike',20)]}
+    uid = next_id()
+    sha1_passwd = '%s:%s' % (uid,passwd)
+    user = User(id=uid,name=name.strip(),email=email,passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    await user.save()
+    user.passwd = '******'
+    resp = web.Response()
+    resp.set_cookie(COOKIE_NAME,user2cookie(user, MAX_AGE),max_age=MAX_AGE,httponly=True)
+    resp.content_type = 'application/json'
+    resp.body = json.dumps({'ret':'ok'},default = lambda obj:obj.__dict__)
+    return resp
 
 @get('/login')
 def register(request):
