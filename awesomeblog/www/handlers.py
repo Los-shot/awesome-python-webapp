@@ -5,10 +5,13 @@ from aiohttp import web
 
 COOKIE_NAME = 'awesome'
 MAX_AGE = 60 * 10
-SECRET_KEY = 'laliga'
+COOKIE_KEY = 'laliga'
 
 def user2cookie(user,max_age):
-    pass
+    expires = str(int(time.time()) + MAX_AGE)
+    s = '%s-%s-%s-%s' % (user.id,user.passwd,expires,COOKIE_KEY)
+    L = [user.id,expires,hashlib.sha1(s.encode('utf-8')).hexdigest()]
+    return '-'.join(L)
 
 @get('/')
 def index(request):
@@ -38,8 +41,6 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 @post('/api/register/user')
 async def api_register_user(request):
-    cookie = request.cookies.get('aka')
-    print('cookie:',cookie)
     params = await parse_post_params(request)
 
     name:str = params.get('name',None)
@@ -63,11 +64,12 @@ async def api_register_user(request):
     sha1_passwd = '%s:%s' % (uid,passwd)
     user = User(id=uid,name=name.strip(),email=email,passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
     await user.save()
-    user.passwd = '******'
+    
     resp = web.Response()
     resp.set_cookie(COOKIE_NAME,user2cookie(user, MAX_AGE),max_age=MAX_AGE,httponly=True)
+    user.passwd = '******'
     resp.content_type = 'application/json'
-    resp.body = json.dumps({'ret':'ok'},default = lambda obj:obj.__dict__)
+    resp.body = json.dumps(user,ensure_ascii = False).encode('utf-8')
     return resp
 
 @get('/login')
