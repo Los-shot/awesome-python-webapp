@@ -2,16 +2,7 @@ from handlerframe import get,post,parse_post_params,APIError,APIValueError
 from model import next_id,Blog,User
 import time, re, hashlib, json
 from aiohttp import web
-
-COOKIE_NAME = 'awesome'
-MAX_AGE = 60 * 10
-COOKIE_KEY = 'laliga'
-
-def user2cookie(user,max_age):
-    expires = str(int(time.time()) + MAX_AGE)
-    s = '%s-%s-%s-%s' % (user.id,user.passwd,expires,COOKIE_KEY)
-    L = [user.id,expires,hashlib.sha1(s.encode('utf-8')).hexdigest()]
-    return '-'.join(L)
+from cookieutil import COOKIE_NAME,MAX_AGE,COOKIE_KEY,user2cookie
 
 @get('/')
 def index(request):
@@ -21,23 +12,17 @@ def index(request):
         Blog(id='2', name='Something New', summary=summary, created_at=time.time()-3600),
         Blog(id='3', name='Learn Swift', summary=summary, created_at=time.time()-7200)
     ]
+
     return {
         '__template__': 'blogs.html',
         'blogs': blogs
     }
 
-class A():
-    def __init__(self,name,age):
-        self.name = name
-        self.age = age
-
-@get('/api/users/{name}')
-def get_api_users(request):
-    name = request.match_info.get('name','nobody')
-    return {'users':[A(name,12),A('mike',20)]}
-
-_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
-_RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
+@get('/register')
+def register(request):
+    return {
+        '__template__':'register.html'
+    }
 
 @post('/api/register/user')
 async def api_register_user(request):
@@ -46,12 +31,16 @@ async def api_register_user(request):
     name:str = params.get('name',None)
     if not name or not name.strip():
         raise APIValueError('name')
-    
+
     email:str = params.get('email',None)
+    _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
+
     if not email or not _RE_EMAIL.match(email):
         raise APIValueError('email')
 
     passwd:str = params.get('passwd',None)
+    _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
+
     if not passwd or not _RE_SHA1.match(passwd):
         raise APIValueError('passwd')
 
@@ -70,10 +59,47 @@ async def api_register_user(request):
     user.passwd = '******'
     resp.content_type = 'application/json'
     resp.body = json.dumps(user,ensure_ascii = False).encode('utf-8')
+    
     return resp
 
-@get('/login')
-def register(request):
+@get('/registerSucc')
+async def registerSucc(request):
     return {
-        '__template__':'register.html'
+        '__template__':'registerSucc.html'
     }
+
+async def authenticate(*,email,passwd):
+    if not email:
+        raise APIValueError('email','Invalid email.')
+    if not password:
+        raise APIValueError('passwd','Invalid password')
+
+    users = await User.findAll('email', email)
+    if len(users) == 0:
+        raise APIValueError('email','email not exist.')
+    user = users[0]
+    sha1 = hashlib.sha1()
+    sha1.update(email.encode('utf-8'))
+    sha1.update(b':')
+    sha1.update(passwd.encode('utf-8'))
+    if sha1.hexdigest() != user.passwd:
+        raise APIValueError('passwd','Invalid password')
+
+    r = web.Response()
+    r.set_cookie(COOKIE_NAME,user2cookie(user,MAX_AGE),max_age=MAX_AGE,httponly=True)
+    user.passwd = '******'
+    r.content_type = 'application/json'
+    r.body = json.dumps(user,ensure_ascii=False).encode('utf-8')
+    
+    return r
+
+## test url + param
+# class A():
+#     def __init__(self,name,age):
+#         self.name = name
+#         self.age = age
+
+# @get('/api/users/{name}')
+# def get_api_users(request):
+#     name = request.match_info.get('name','nobody')
+#     return {'users':[A(name,12),A('mike',20)]}

@@ -5,56 +5,58 @@
 {% block beforehead %}
 
 <script>
-function validateEmail(email) {
-    var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
-    return re.test(email.toLowerCase());
-}
+    function validateEmail(email) {
+        var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
+        return re.test(email.toLowerCase());
+    }
 
-$(function () {
-    var vm = new Vue({
-        el: '#vm',
-        data: {
-            name: '',
-            email: '',
-            password1: '',
-            password2: ''
-        },
-        methods: {
-            submit: function (event) {
-                let that = this;
-                if (! this.name.trim()) {
-                    return this.showFormError('请输入名字');
-                }
-                if (! validateEmail(this.email.trim().toLowerCase())) {
-                    return this.showFormError('请输入正确的Email地址');
-                }
-                if (this.password1.length < 6) {
-                    return this.showFormError('口令长度至少为6个字符');
-                }
-
-                if (this.password1 !== this.password2) {
-                    return this.showFormError('两次输入的口令不一致');
-                }
-
-                let email = this.email.trim().toLowerCase();
-
-                var jqxhr = $.post('/api/register/user', {
-                    name: this.name.trim(),
-                    email: email,
-                    passwd: hex_sha1(email + ':' + this.password1).toString()
-                }).done(function (data) {
-                    that.showFormError('成功, 收到的数据: ' + JSON.stringify(data));
-                }).fail(function (xhr, status) {
-                    that.showFormError('失败: ' + xhr.status + ', 原因: ' + status);
-                })
+    $(function () {
+        var vm = new Vue({
+            el: '#vm',
+            data: {
+                name: '',
+                email: '',
+                password1: '',
+                password2: ''
             },
-            showFormError:function(msg){
-                alert(msg);
+            methods: {
+                submit: function (event) {
+                    let that = this;
+                    if (! this.name.trim()) {
+                        return this.showFormError('请输入名字');
+                    }
+                    if (! validateEmail(this.email.trim().toLowerCase())) {
+                        return this.showFormError('请输入正确的Email地址');
+                    }
+                    if (this.password1.length < 6) {
+                        return this.showFormError('口令长度至少为6个字符');
+                    }
+
+                    if (this.password1 !== this.password2) {
+                        return this.showFormError('两次输入的口令不一致');
+                    }
+
+                    let email = this.email.trim().toLowerCase();
+
+                    var jqxhr = $.post('/api/register/user', {
+                        name: this.name.trim(),
+                        email: email,
+                        passwd: hex_sha1(email + ':' + this.password1).toString()
+                    }).done(function (data) {
+                        let user = JSON.stringify(data)
+                        if(user.id)
+                            window.location.href = '/registerSucc';
+                    }).fail(function (xhr, status) {
+                        that.showFormError('失败: ' + xhr.status + ', 原因: ' + status);
+                    })
+                },
+                showFormError:function(msg){
+                    alert(msg);
+                }
             }
-        }
+        });
     });
-});
-</script>
+    </script>
 
 {% endblock %}
 
