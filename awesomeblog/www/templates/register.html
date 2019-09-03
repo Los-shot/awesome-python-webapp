@@ -43,8 +43,7 @@
                         email: email,
                         passwd: hex_sha1(email + ':' + this.password1).toString()
                     }).done(function (data) {
-                        let user = JSON.stringify(data)
-                        if(user.id)
+                        if(data.id)
                             window.location.href = '/registerSucc';
                     }).fail(function (xhr, status) {
                         that.showFormError('失败: ' + xhr.status + ', 原因: ' + status);

@@ -45,11 +45,15 @@ async def response_factory(request,handler):
     if isinstance(r,dict):
         if r.get('__template__',None):
             template = env.get_template(r['__template__'])
-            if request.__user__:
-                r['user'] = request.__user__
+            if request.path != '/signout':
+                if request.__user__:
+                    r['user'] = request.__user__
             body = template.render(r)
             resp = web.Response(body = body)
             resp.content_type = 'text/html'
+            
+            if request.path == '/signout':
+                resp.del_cookie(COOKIE_NAME)
         else:
             resp = web.Response(body = json.dumps(r,default = lambda obj:obj.__dict__))
             resp.content_type = 'application/json;charset=utf-8'

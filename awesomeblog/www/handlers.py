@@ -24,6 +24,9 @@ def register(request):
         '__template__':'register.html'
     }
 
+_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
+_RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
+
 @post('/api/register/user')
 async def api_register_user(request):
     params = await parse_post_params(request)
@@ -33,13 +36,11 @@ async def api_register_user(request):
         raise APIValueError('name')
 
     email:str = params.get('email',None)
-    _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
-
+    
     if not email or not _RE_EMAIL.match(email):
         raise APIValueError('email')
 
     passwd:str = params.get('passwd',None)
-    _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
     if not passwd or not _RE_SHA1.match(passwd):
         raise APIValueError('passwd')
@@ -68,30 +69,51 @@ async def registerSucc(request):
         '__template__':'registerSucc.html'
     }
 
-async def authenticate(*,email,passwd):
-    if not email:
-        raise APIValueError('email','Invalid email.')
-    if not password:
-        raise APIValueError('passwd','Invalid password')
+@get('/signin')
+def signin(request):
+    return {
+        '__template__':'signin.html'
+    }
+
+@post('/api/signin/user')
+async def api_signin_user(request):
+    params = await parse_post_params(request)
+
+    email:str = params.get('email',None)
+
+    if not email or not _RE_EMAIL.match(email):
+        raise APIValueError('email')
+
+    passwd:str = params.get('passwd',None)
+
+    if not passwd or not _RE_SHA1.match(passwd):
+        raise APIValueError('passwd')
 
     users = await User.findAll('email', email)
+
     if len(users) == 0:
         raise APIValueError('email','email not exist.')
     user = users[0]
     sha1 = hashlib.sha1()
-    sha1.update(email.encode('utf-8'))
+    sha1.update(user.id.encode('utf-8'))
     sha1.update(b':')
     sha1.update(passwd.encode('utf-8'))
     if sha1.hexdigest() != user.passwd:
         raise APIValueError('passwd','Invalid password')
-
-    r = web.Response()
-    r.set_cookie(COOKIE_NAME,user2cookie(user,MAX_AGE),max_age=MAX_AGE,httponly=True)
-    user.passwd = '******'
-    r.content_type = 'application/json'
-    r.body = json.dumps(user,ensure_ascii=False).encode('utf-8')
     
-    return r
+    resp = web.Response()
+    resp.set_cookie(COOKIE_NAME,user2cookie(user, MAX_AGE),max_age=MAX_AGE,httponly=True)
+    user.passwd = '******'
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(user,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
+@get('/signout')
+async def api_signout_user(request):
+    return {
+        '__template__':'signin.html'
+    }
 
 ## test url + param
 # class A():

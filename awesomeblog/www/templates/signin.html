@@ -1,0 +1,76 @@
+{% extends '__base__.html' %}
+
+{% block title %}登陆{% endblock %}
+
+{% block beforehead %}
+
+<script>
+    function validateEmail(email) {
+        var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
+        return re.test(email.toLowerCase());
+    }
+
+    $(function () {
+        var vm = new Vue({
+            el: '#vm',
+            data: {
+                email: '',
+                passwd: ''
+            },
+            methods: {
+                submit: function (event) {
+                    let that = this;
+                    if (!validateEmail(this.email.trim().toLowerCase())) {
+                        return this.showFormError('请输入正确的Email地址');
+                    }
+
+                    if (this.passwd.length < 6) {
+                        return this.showFormError('口令长度至少为6个字符');
+                    }
+
+                    let email = this.email.trim().toLowerCase();
+                    let jqxhr = $.post('/api/signin/user', {
+                        email: email,
+                        passwd: hex_sha1(email + ':' + this.passwd).toString()
+                    }).done(function (data) {
+                        if(data.id)
+                            window.location.href = '/';
+                    }).fail(function (xhr, status) {
+                        that.showFormError('失败: ' + xhr.status + ', 原因: ' + status);
+                    });
+                },
+                showFormError:function(msg){
+                    alert(msg);
+                }
+            }
+        });
+    });
+    </script>
+
+{% endblock %}
+
+{% block content %}
+
+    <div class="uk-width-2-3">
+        <h1>欢迎登陆！</h1>
+        <form id="vm" v-on:submit.prevent="submit" class="uk-form uk-form-stacked">
+            <div class="uk-alert uk-alert-danger uk-hidden"></div>
+            <div class="uk-form-row">
+                    <label class="uk-form-label">电子邮件:</label>
+                    <div class="uk-form-controls">
+                        <input v-model="email" type="text" maxlength="50" placeholder="your-name@example.com" class="uk-width-1-1">
+                    </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">输入口令:</label>
+                <div class="uk-form-controls">
+                    <input v-model="passwd" type="password" maxlength="50" placeholder="输入口令" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <button type="submit" class="uk-button uk-button-primary"><i class="uk-icon-user"></i> 登陆</button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}
