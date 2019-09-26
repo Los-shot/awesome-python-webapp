@@ -4,6 +4,11 @@
     <meta charset="utf-8" />
     {% block meta %}<!-- block meta  -->{% endblock %}
     <title>{% block title %} ? {% endblock %} - Awesome Python Webapp</title>
+    <script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous">
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="../static/js/uikit.min.js"></script>
     <link rel="stylesheet" href="../static/css/uikit.min.css">
@@ -13,12 +18,6 @@
     <!-- <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/md5.js"></script> -->
     <script src="../static/js/sha1.js"></script>
-    
-    <script
-        src="https://code.jquery.com/jquery-3.4.1.min.js"
-        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
-        crossorigin="anonymous">
-    </script>
     <script src="../static/js/awesome.js"></script>
     {% block beforehead %}<!-- before head  -->{% endblock %}
 </head>
@@ -28,14 +27,14 @@
             <a href="/" class="uk-navbar-brand">Awesome</a>
             <ul class="uk-navbar-nav">
                 <li data-url="blogs"><a href="/"><i class="uk-icon-home"></i> 日志</a></li>
-                <li><a target="_blank" href="#"><i class="uk-icon-book"></i> 教程</a></li>
-                <li><a target="_blank" href="#"><i class="uk-icon-code"></i> 源码</a></li>
+                <li><a target="_blank" href="https://www.liaoxuefeng.com/wiki/1016959663602400/1018138095494592"><i class="uk-icon-book"></i> 教程</a></li>
+                <li><a target="_blank" href="https://github.com/Los-shot/awesome-python-webapp"><i class="uk-icon-code"></i> 源码</a></li>
             </ul>
             <div class="uk-navbar-flip">
                 <ul class="uk-navbar-nav">
                 {% if user %}
                     <li>
-                        <div>昵称：{{ user.name }}   <a href="/signout">登出</a></div>
+                        <div>昵称：{{ user.name }}   <a href="/signout">登出</a> <a href="/manage/blog">管理</a> </div>
                     </li>
                 {% else %}
                     <li><a href="/signin"><i class="uk-icon-sign-in"></i> 登陆</a></li>
