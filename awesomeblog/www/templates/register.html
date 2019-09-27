@@ -6,12 +6,12 @@
 
 <script>
     function validateEmail(email) {
-        var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
+        let re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
         return re.test(email.toLowerCase());
     }
 
     $(function () {
-        var vm = new Vue({
+        let vm = new Vue({
             el: '#vm',
             data: {
                 name: '',
@@ -38,7 +38,7 @@
 
                     let email = this.email.trim().toLowerCase();
 
-                    var jqxhr = $.post('/api/register/user', {
+                    let jqxhr = $.post('/api/register/user', {
                         name: this.name.trim(),
                         email: email,
                         passwd: hex_sha1(email + ':' + this.password1).toString()

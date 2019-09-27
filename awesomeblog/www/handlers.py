@@ -12,7 +12,7 @@ async def index(request):
 
     summary1 = '每个注册用户可以创建新的博客，但是不能修改已有日志，如果想要修改已有日志，需取得管理员权限，请与543751914@qq.com联系'
     summary2 = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-    summary3 = 'blog作业断断续续做了好长时间，本人没有什么web前端基础，花了一些时间简单学习了下html、css、vue,也没深入，所有blog页面也只是跟教程的原汁原味，另因为没有看廖大大源码的缘故，根据python blog教程有好多细节的改动，比如aiohttp，每个细节都做了推敲，包括注册、登录、注销等等'
+    summary3 = 'blog作业断断续续做了好长时间，另加自己没有web前端基础，花了一些时间简单学习了下html、css、vue,也没深入，所有blog页面也只是跟教程的原汁原味，另因为没有看廖大大源码的缘故，根据python blog教程有好多细节的改动，比如aiohttp，每个细节都做了推敲，包括注册、登录、注销等等'
     
     test = [
         Blog(id='1', name='公共日志', summary=summary1, created_at=time.time()-120),
@@ -27,6 +27,22 @@ async def index(request):
     return {
         '__template__': 'blogs.html',
         'blogs': blogs
+    }
+
+@get("/blog/{id}")
+async def get_blog(request):
+    id = request.path[6:]
+    blog = await Blog.find(id)
+
+    if blog:
+        pass
+    else:
+        summary1 = '每个注册用户可以创建新的博客，但是不能修改已有日志，如果想要修改已有日志，需取得管理员权限，请与543751914@qq.com联系'
+        blog = Blog(id='1', name='公共日志', summary=summary1, created_at=time.time()-120)
+    
+    return {
+        '__template__': 'blog.html',
+        'blog': blog
     }
 
 @get('/register')
@@ -121,7 +137,7 @@ async def api_signin_user(request):
     return resp
 
 @get('/signout')
-async def api_signout_user(request):
+async def signout_user(request):
     return {
         '__template__':'signin.html'
     }
@@ -137,13 +153,30 @@ def manage_blog_edit(request):
             '__template__':'signin.html'
         }
 
-## test url + param
-# class A():
-#     def __init__(self,name,age):
-#         self.name = name
-#         self.age = age
+@post('/api/create/blog')
+async def api_create_blog(request):
+    result = {}
 
-# @get('/api/users/{name}')
-# def get_api_users(request):
-#     name = request.match_info.get('name','nobody')
-#     return {'users':[A(name,12),A('mike',20)]}
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+        name:str = params.get('name',None)
+        summary:str = params.get('summary',None)
+        content:str = params.get('content',None)
+
+        blog = Blog(user_id=user.id,user_name=user.name,user_image=user.image,name=name,summary=summary,content=content)
+        
+        await blog.save()
+
+        result["id"] = blog.id
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
