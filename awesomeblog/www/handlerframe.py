@@ -75,6 +75,7 @@ def add_routes(app,module_name):
 async def parse_post_params(request):
     sb = await request.content.read()
     s = sb.decode('utf-8')
+    s = s.replace('+','%20')
     s = unquote(s)
     segs = s.split('&')
     obj = {}
@@ -84,6 +85,16 @@ async def parse_post_params(request):
         obj[seg[0]] = seg[1]
 
     return obj
+
+def getQueryString(request,name):
+    urlParams = request.query_string
+    segs = urlParams.split('&')
+    obj = {}
+
+    for k in segs:
+        seg = k.split('=')
+        if seg[0] == name:
+            return seg[1]
 
 class APIError(Exception):
     pass

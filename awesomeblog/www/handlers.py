@@ -1,4 +1,4 @@
-from handlerframe import get,post,parse_post_params,APIError,APIValueError
+from handlerframe import get,post,parse_post_params,getQueryString,APIError,APIValueError
 from model import next_id,Blog,User
 import time, re, hashlib, json
 from aiohttp import web
@@ -153,6 +153,42 @@ def manage_blog_edit(request):
             '__template__':'signin.html'
         }
 
+@get('/manage/blogs')
+def manage_blogs(request):
+    if request.__user__:
+        page = getQueryString(request,'page') or 1
+        
+        return {
+            'page_index' : page,
+            '__template__':'manage_blogs.html'
+        }
+    else:
+        return {
+            '__template__':'signin.html'
+        }
+
+@post('/api/manage/blogs')
+async def api_manage_blogs(request):
+    result = {}
+
+    if request.__user__:
+        params = await parse_post_params(request)
+        page:str = params.get('page',None)
+
+        result["blogs"] = await Blog.findAll("user_id",request.__user__.id)
+        
+        result['page'] = page
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+
+    return resp
+
 @post('/api/create/blog')
 async def api_create_blog(request):
     result = {}
@@ -180,3 +216,80 @@ async def api_create_blog(request):
     
     return resp
 
+@post('/api/get/blog')
+async def api_get_blog(request):
+    result = {}
+
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+        id:str = params.get('id',None)
+        blog = await Blog.find(id)
+
+        result["blog"] = blog
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
+@post('/api/update/blog')
+async def api_update_blog(request):
+    result = {}
+
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+        name:str = params.get('name',None)
+        summary:str = params.get('summary',None)
+        content:str = params.get('content',None)
+
+        id:str = params.get('id',None)
+
+        blog = await Blog.find(id)
+
+        blog.name = name
+        blog.summary = summary
+        blog.content = content
+
+        await blog.update()
+
+        result["id"] = blog.id
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
+@post('/api/delete/blog')
+async def api_delete_blog(request):
+    result = {}
+
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+
+        id:str = params.get('id',None)
+
+        await Blog.remove(id)
+
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp

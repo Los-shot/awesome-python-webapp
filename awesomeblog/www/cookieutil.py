@@ -2,7 +2,7 @@ import time,hashlib,logging
 from model import User
 
 COOKIE_NAME = 'awesome'
-MAX_AGE = 60 * 10
+MAX_AGE = 60 * 60 * 24
 COOKIE_KEY = 'laliga'
 
 def user2cookie(user,max_age):

@@ -35,6 +35,8 @@
                     }).done(function (data) {
                         if(data.id)
                             window.location.href = '/';
+                        else
+                            alert("login error");
                     }).fail(function (xhr, status) {
                         that.showFormError('失败: ' + xhr.status + ', 原因: ' + status);
                     });

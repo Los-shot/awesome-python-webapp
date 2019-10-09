@@ -45,6 +45,8 @@
                     }).done(function (data) {
                         if(data.id)
                             window.location.href = '/registerSucc';
+                        else
+                            alert("register fail");
                     }).fail(function (xhr, status) {
                         that.showFormError('失败: ' + xhr.status + ', 原因: ' + status);
                     })

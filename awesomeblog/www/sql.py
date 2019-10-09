@@ -186,7 +186,16 @@ class Model(dict,metaclass = ModelMetaclass):
         pass
 
     async def update(self):
-        pass
+        args = list(map(self.getValueOrDefault,self.__fields__))
+        args.append(self.getValueOrDefault(self.__primary_key__))
+        rows = await execute(self.__update__,args)
+        if rows != 1:
+            logging.warn('failed to update record: affected rows: %s' % rows)
 
-    async def remove(self):
-        pass
+    @classmethod
+    async def remove(cls,pk):
+        ' delete object by primary key.'
+        print(cls.__delete__,pk)
+        rows = await execute(cls.__delete__,pk)
+        if rows != 1:
+            logging.warn('failed to delete record: affected rows: %s' % rows)
