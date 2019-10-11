@@ -25,7 +25,11 @@ async def create_pool(**kw):
     # print(rs)
 
 async def select(sql,args,size = None):
-    logging.log(logging.INFO,sql.replace('?','%s'),args)
+    if args:
+        logging.log(logging.INFO,sql.replace('?','%s'),args)
+    else:
+        logging.log(logging.INFO,sql)
+
     global __pool
     with (await __pool) as conn:
         cur = await conn.cursor(aiomysql.DictCursor)
@@ -174,16 +178,27 @@ class Model(dict,metaclass = ModelMetaclass):
             logging.warn('failed to insert record: affected rows: %s' % rows)
 
     @classmethod
-    async def findAll(cls,k,v):
+    async def findAll(cls,k,v,extra = ''):
         ' find objects by kv pair'
-        rs = await select('%s where `%s` = ?' % (cls.__select__,k),v)
+        rs = await select('%s where `%s` = ?%s' % (cls.__select__,k,extra),v)
         objs = []
         for v in rs:
             objs.append(cls(**v))
         return objs
-    
-    async def findNumber(self):
-        pass
+
+    @classmethod
+    async def sql_select(cls,extra = ''):
+        'custom select'
+        rs = await select(cls.__select__ + extra,None)
+        objs = []
+        for v in rs:
+            objs.append(cls(**v))
+        return objs
+
+    @classmethod
+    async def findNumber(cls,cntTag,extra = ''):
+        rs = await select('select count(?) as cnt from %s%s' % (cls.__table__,extra),cntTag,1)
+        return rs[0].get("cnt")
 
     async def update(self):
         args = list(map(self.getValueOrDefault,self.__fields__))

@@ -6,11 +6,40 @@
 
 <script>
     function initVM(data) {
-        var vm = new Vue({
+        function showPage(page_index,page_count){
+            if(page_count > 3){
+                let tmpPage = [1];
+
+                if(page_index > 2){
+                    tmpPage.push('...');
+                    if(page_index < page_count - 1){
+                        tmpPage.push(page_index);
+                        tmpPage.push('...');
+                    }else{
+                        tmpPage.push(page_count - 1);
+                    }
+                }else{
+                    tmpPage.push(2);
+                    tmpPage.push('...');
+                }
+                    
+                tmpPage.push(page_count);
+
+                return tmpPage;
+            }else{
+                return page_count;
+            }
+        }
+
+        let vm = new Vue({
             el: '#vm',
             data: {
                 blogs:data.blogs,
-                page:data.page
+                page:data.page,
+                page_prefix:'blogs?page=',
+                show_page:showPage(data.page.page_index,data.page.page_count),
+                uk_disabled:'uk-disabled',
+                uk_active:'uk-active'
             },
             methods: {
                 edit_blog: function (blog) {
@@ -44,7 +73,7 @@
         $.post('/api/manage/blogs', {page: '{{page_index}}'}).done(function (data) {
                 $('#loading').hide();
                 if(data && data.status === 'ok')
-                    initVM({page:data.page,blogs:data.blogs})
+                    initVM({page:data.page,blogs:data.blogs});
                 else
                     alert('失败: ' + data.msg);
             }).fail(function (xhr, status) {
@@ -91,8 +120,7 @@
             <tbody>
                 <tr v-for="blog in blogs" >
                     <td>
-                            <!-- v-attr="href: '/blog/'+blog.id" -->
-                        <a target="_blank"  v-text="blog.name"></a>
+                        <a target="_blank"  v-bind:href="'/blog/'+blog.id" v-text="blog.name"></a>
                     </td>
                     <td>
                             <!-- v-attr="href: '/user/'+blog.user_id" -->
@@ -109,7 +137,23 @@
             </tbody>
         </table>
         
-        <!-- <div v-component="pagination" v-with="page"></div> -->
+        <ul class="uk-pagination">
+            <li :class="page.page_index === 1 && uk_disabled">
+                <span v-if="page.page_index === 1"><i class="uk-icon-angle-double-left"></i></span>
+                <a v-else v-bind:href="page_prefix + (page.page_index - 1)"><i class="uk-icon-angle-double-left"></i></a>
+            </li>
+
+            <li v-for="item in show_page" :class="page.page_index === item && uk_active">
+                <span v-if="page.page_index === item" v-text="item"></span>
+                <span v-else-if="item==='...'">...</span>
+                <a v-else v-bind:href="page_prefix + item" v-text="item"></a>
+            </li>
+
+            <li :class="page.page_index == page.page_count && uk_disabled">
+                <span v-if="page.page_index == page.page_count"><i class="uk-icon-angle-double-right"></i></span>
+                <a v-else v-bind:href="page_prefix + (page.page_index + 1)"><i class="uk-icon-angle-double-right"></i></a>
+            </li>
+        </ul>
     </div>
 
 {% endblock %}

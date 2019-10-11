@@ -1,4 +1,4 @@
-from handlerframe import get,post,parse_post_params,getQueryString,APIError,APIValueError
+from handlerframe import get,post,parse_post_params,getQueryString,APIError,APIValueError,Page
 from model import next_id,Blog,User
 import time, re, hashlib, json
 from aiohttp import web
@@ -6,23 +6,7 @@ from cookieutil import COOKIE_NAME,MAX_AGE,COOKIE_KEY,user2cookie
 
 @get('/')
 async def index(request):
-    blogs = []
-    if request.__user__:
-        blogs = await Blog.findAll('user_id',request.__user__.id)
-
-    summary1 = '每个注册用户可以创建新的博客，但是不能修改已有日志，如果想要修改已有日志，需取得管理员权限，请与543751914@qq.com联系'
-    summary2 = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-    summary3 = 'blog作业断断续续做了好长时间，另加自己没有web前端基础，花了一些时间简单学习了下html、css、vue,也没深入，所有blog页面也只是跟教程的原汁原味，另因为没有看廖大大源码的缘故，根据python blog教程有好多细节的改动，比如aiohttp，每个细节都做了推敲，包括注册、登录、注销等等'
-    
-    test = [
-        Blog(id='1', name='公共日志', summary=summary1, created_at=time.time()-120),
-        Blog(id='2', name='Test Blog', summary=summary2, created_at=time.time()-3600),
-        Blog(id='3', name='作业心得', summary=summary3, created_at=time.time()-7200)
-    ]
-    
-    blogs.append(test[0])
-    blogs.append(test[1])
-    blogs.append(test[2])
+    blogs = await Blog.sql_select('order by created_at desc limit 20')
 
     return {
         '__template__': 'blogs.html',
@@ -173,11 +157,17 @@ async def api_manage_blogs(request):
 
     if request.__user__:
         params = await parse_post_params(request)
-        page:str = params.get('page',None)
-
-        result["blogs"] = await Blog.findAll("user_id",request.__user__.id)
+        page_index:int = int(params.get('page','1'))
+        num = await Blog.findNumber('id',' where %s = \'%s\'' % ('user_id',request.__user__.id))
+        page = Page(num,page_index)
+        extra = ''
+        if page.page_index < 100:
+            extra = ' order by created_at desc limit %s,%s' % (page.offset,page.limit)
+        else:
+            extra = ' and created_at <= (select created_at from blogs where user_id = \'%s\' order by created_at desc limit %s,1) order by created_at desc limit %s' % (request.__user__.id,page.offset,page.limit)
+        result["blogs"] = await Blog.findAll("user_id",request.__user__.id,extra)
         
-        result['page'] = page
+        result['page'] = {'page_count':page.page_count,'page_index':page.page_index}
         result['status'] = 'ok'
     else:
         result['status'] = 'fail'
