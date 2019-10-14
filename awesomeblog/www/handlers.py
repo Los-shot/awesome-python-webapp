@@ -1,5 +1,5 @@
 from handlerframe import get,post,parse_post_params,getQueryString,APIError,APIValueError,Page
-from model import next_id,Blog,User
+from model import next_id,Blog,User,Comment
 import time, re, hashlib, json
 from aiohttp import web
 from cookieutil import COOKIE_NAME,MAX_AGE,COOKIE_KEY,user2cookie
@@ -17,12 +17,6 @@ async def index(request):
 async def get_blog(request):
     id = request.path[6:]
     blog = await Blog.find(id)
-
-    if blog:
-        pass
-    else:
-        summary1 = '每个注册用户可以创建新的博客，但是不能修改已有日志，如果想要修改已有日志，需取得管理员权限，请与543751914@qq.com联系'
-        blog = Blog(id='1', name='公共日志', summary=summary1, created_at=time.time()-120)
     
     return {
         '__template__': 'blog.html',
@@ -273,6 +267,55 @@ async def api_delete_blog(request):
 
         await Blog.remove(id)
 
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
+@post('/api/create/comment')
+async def api_create_comment(request):
+    result = {}
+
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+        blog_id:str = params.get('blog_id',None)
+        content:str = params.get('content',None)
+
+        comment = Comment(blog_id=blog_id,user_id=user.id,user_name=user.name,user_image=user.image,content=content)
+        
+        await comment.save()
+
+        result["comment"] = comment
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
+@post('/api/get/comment')
+async def api_get_comment(request):
+    result = {}
+
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+        blog_id:str = params.get('blog_id',None)
+
+        comments = await Comment.findAll("blog_id",blog_id)
+
+        result["comments"] = comments
         result['status'] = 'ok'
     else:
         result['status'] = 'fail'

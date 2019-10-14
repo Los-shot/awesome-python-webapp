@@ -7,14 +7,12 @@
 <script>
     let ID = awesome.getQueryString('id'), action = '{{ action }}';
 
-    function initVM(blog) {
+    function initVM(blog){
         var vm = new Vue({
             el: '#vm',
             data: blog,
             methods: {
-                submit: function (event) {
-                    event.preventDefault();
-                    
+                submit: function(){
                     if(ID){
                         $.post('/api/update/blog', this.$data).done(function (data) {
                                 if(data && data.status === 'ok')
