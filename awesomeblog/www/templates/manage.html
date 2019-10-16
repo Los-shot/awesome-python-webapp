@@ -1,0 +1,310 @@
+{% extends '__base__.html' %}
+
+{% block title %}编辑日志{% endblock %}
+
+{% block beforehead %}
+
+<script>
+    let pageTag = {
+        tag_blog:"part_blog",
+        tag_comment:'part_comment',
+        tag_user:'part_user'
+    };
+
+    let vm = undefined;
+
+    function initVM() {
+        function showPage(page_index,page_count){
+            if(page_count > 3){
+                let tmpPage = [1];
+
+                if(page_index > 2){
+                    tmpPage.push('...');
+                    if(page_index < page_count - 1){
+                        tmpPage.push(page_index);
+                        tmpPage.push('...');
+                    }else{
+                        tmpPage.push(page_count - 1);
+                    }
+                }else{
+                    tmpPage.push(2);
+                    tmpPage.push('...');
+                }
+                    
+                tmpPage.push(page_count);
+
+                return tmpPage;
+            }else
+                return page_count;
+        }
+
+        vm = new Vue({
+            el: '#vm',
+            data: {
+                items:[],
+                pageTag:pageTag['tag_blog'],
+                page_count:1,
+                page_index:1,
+                uk_disabled:'uk-disabled',
+                uk_active:'uk-active'
+            },
+            computed:{
+                show_page:function(){
+                    return showPage(this.page_index,this.page_count);
+                }
+            },
+            mounted:function(){
+                let that = this;
+
+                $('#pagination').on('click', function(e,v){
+                    e.preventDefault();
+                    if((e.target.tagName === 'I' && e.target.className === 'uk-icon-angle-double-left') 
+                        || (e.target.tagName === 'A' && e.target.id === 'goLeft')){
+                        that.goPre();
+                    }else if((e.target.tagName === 'I' && e.target.className === 'uk-icon-angle-double-right') 
+                        || (e.target.tagName === 'A' && e.target.id === 'goRight')){
+                        that.goNext();
+                    }else if(e.target.tagName === 'A' && Number(e.target.textContent)){
+                        that.goPage(Number(e.target.textContent));
+                    }
+                });
+
+                this.urlPost();
+            },
+            methods: {
+                edit_blog: function (blog) {
+                    location.assign('/manage/blog?id=' + blog.id);
+                },
+                delete_blog: function (blog) {
+                    let that = this;
+                    if (confirm('确认要删除“' + blog.name + '”？删除后不可恢复！')) {
+                        $.post('/api/delete/blog', {id:blog.id}).done(function (data) {
+                                if(data && data.status === 'ok'){
+                                    for(let i = 0;i < that.items.length;i++){
+                                        if(that.items[i].id === blog.id){
+                                            that.items.splice(i,1);
+                                            break;
+                                        }
+                                    }
+                                }else
+                                    alert('失败: ' + data.msg);
+                            }).fail(function (xhr, status) {
+                                alert('失败: ' + xhr.status + ', 原因: ' + status);
+                            })
+                    }
+                },
+                delete_comment: function (comment) {
+                    let that = this;
+                    if (confirm('确认要删除“' + comment.blog_name + '”的该条留言？删除后不可恢复！')) {
+                        $.post('/api/delete/comment', {id:comment.id}).done(function (data) {
+                                if(data && data.status === 'ok'){
+                                    for(let i = 0;i < that.items.length;i++){
+                                        if(that.items[i].id === comment.id){
+                                            that.items.splice(i,1);
+                                            break;
+                                        }
+                                    }
+                                }else
+                                    alert('失败: ' + data.msg);
+                            }).fail(function (xhr, status) {
+                                alert('失败: ' + xhr.status + ', 原因: ' + status);
+                            })
+                    }
+                },
+                timeFormat: awesome.timeFormat,
+                switchTag:function(){
+                    this.page_index = 1;
+                    this.urlPost();
+                },
+                goPre:function(){
+                    if(this.page_index > 1){
+                        this.page_index--;
+                        this.urlPost();
+                    }
+                },
+                goNext:function(){
+                    if(this.page_index < this.page_count){
+                        this.page_index++;
+                        this.urlPost();
+                    }
+                },
+                goPage:function(index){
+                    this.page_index = index;
+                    this.urlPost();
+                },
+                urlPost:function(){
+                    $('#loading').show();
+
+                    let that = this;
+
+                    $.post('/api/manage', {pageTag:this.pageTag,pageIndex:this.page_index}).done(function (data) {
+                        $('#loading').hide();
+
+                        if(data && data.status === 'ok'){
+                            that.page_index = data.page.page_index;
+                            that.page_count = data.page.page_count;
+                            that.items = data.items;
+                        }else
+                            alert('失败: ' + data.msg);
+                    }).fail(function (xhr, status) {
+                        $('#loading').hide();
+                        alert('失败: ' + xhr.status + ', 原因: ' + status);
+                    });
+                }
+            }
+        });
+        $('#vm').show();
+    }
+
+    $(function() {
+        if(!awesome.getAdmin())
+            $("#tag_user").addClass('uk-disabled')
+
+        $("#pageTag").on('change.uk.tab',function(event,item){
+            if(vm){
+                vm.pageTag = pageTag[item[0].id];
+                vm.switchTag();
+            }  
+        });
+
+        initVM();
+    });
+</script>
+
+{% endblock %}
+
+{% block content %}
+    <p id="member" class="uk-hidden">{{user}}</p>
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <ul id="pageTag" class="uk-tab" data-uk-tab>
+            <li id="tag_blog" class="uk-active"><a href="#">日志</a></li>
+            <li id="tag_comment"><a href="#">评论</a></li>
+            <li id="tag_user"><a href="#">用户</a></li>
+        </ul>
+    </div>
+
+    <div id="error" class="uk-width-1-1">
+    </div>
+
+    <div id="loading" class="uk-width-1-1 uk-text-center">
+        <span><i class="uk-icon-spinner uk-icon-medium uk-icon-spin"></i> 
+            正在加载...</span>
+    </div>
+
+    <div id="vm" class="uk-width-1-1">
+        <!-- show blogs -->
+        <div v-if="pageTag === 'part_blog'" id='part_blog'>
+            <a href="/manage/blog" class="uk-button uk-button-primary uk-align-right"><i class="uk-icon-plus"></i> 新日志</a>
+            <table class="uk-table uk-table-hover">
+                <thead>
+                    <tr>
+                        <th class="uk-width-5-10">标题 / 摘要</th>
+                        <th class="uk-width-2-10">作者</th>
+                        <th class="uk-width-2-10">创建时间</th>
+                        <th class="uk-width-1-10">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="blog in items" >
+                        <td>
+                            <a target="_blank"  v-bind:href="'/blog/'+blog.id" v-text="blog.name"></a>
+                        </td>
+                        <td>
+                                <!-- v-attr="href: '/user/'+blog.user_id" -->
+                            <a target="_blank"  v-text="blog.user_name"></a>
+                        </td>
+                        <td>
+                            <span v-text="timeFormat(blog.created_at)"></span>
+                        </td>
+                        <td>
+                            <a href="#0" v-on:click="edit_blog(blog)"><i class="uk-icon-edit"></i>
+                            <a href="#0" v-on:click="delete_blog(blog)"><i class="uk-icon-trash-o"></i>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- show comments -->
+        <div v-else-if="pageTag === 'part_comment'" id='part_comment'>
+            <table class="uk-table uk-table-hover">
+                <thead>
+                    <tr>
+                        <th class="uk-width-2-10">日志</th>
+                        <th class="uk-width-1-10 uk-text-center">留言者</th>
+                        <th class="uk-width-5-10 uk-text-center">评论</th>
+                        <th class="uk-width-1-10 uk-text-center">时间</th>
+                        <th class="uk-width-1-10 uk-text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="comment in items" >
+                        <td>
+                            <a target="_blank"  v-bind:href="'/blog/'+comment.blog_id" v-text="comment.blog_name"></a>
+                        </td>
+                        <td class="uk-text-center">
+                            <span v-text="comment.user_name"></span>
+                        </td>
+                        <td class="uk-text-center">
+                            <span v-text="comment.content"></span>
+                        </td>
+                        <td class="uk-text-center">
+                            <span v-text="timeFormat(comment.created_at)"></span>
+                        </td>
+                        <td class="uk-text-center">
+                            <a href="#0" v-on:click="delete_comment(comment)"><i class="uk-icon-trash-o"></i>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- show users -->
+        <div v-else-if="pageTag === 'part_user'" id='part_user'>
+            <table class="uk-table uk-table-hover">
+                <thead>
+                    <tr>
+                        <th class="uk-width-1-10 uk-text-center">用户名</th>
+                        <th class="uk-width-3-10 uk-text-center">邮箱</th>
+                        <th class="uk-width-2-10 uk-text-center">创建时间</th>
+                        <th class="uk-width-1-10 uk-text-center">是否为管理员</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="user in items" >
+                        <td class="uk-text-center">
+                            <span v-text="user.name"></span>
+                        </td>
+                        <td class="uk-text-center">
+                            <span v-text='user.email'></span>
+                        </td>
+                        <td class="uk-text-center">
+                            <span v-text="timeFormat(user.created_at)"></span>
+                        </td>
+                        <td class="uk-text-center">
+                            <span v-text="user.admin > 0 ? '是' : '否'">yes</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- pagination -->
+        <ul id='pagination' class="uk-pagination">
+            <li :class="page_index === 1 && uk_disabled">
+                <span v-if="page_index === 1"><i class="uk-icon-angle-double-left"></i></span>
+                <a v-else href='#' id="goLeft"><i class="uk-icon-angle-double-left"></i></a>
+            </li>
+
+            <li v-for="item in show_page" :class="page_index === item && uk_active">
+                <span v-if="page_index === item" v-text="item"></span>
+                <span v-else-if="item==='...'">...</span>
+                <a v-else href='#' v-text="item"></a>
+            </li>
+
+            <li :class="page_index == page_count && uk_disabled">
+                <span v-if="page_index == page_count"><i class="uk-icon-angle-double-right"></i></span>
+                <a v-else href='#' id="goRight"><i class="uk-icon-angle-double-right"></i></a>
+            </li>
+        </ul>
+    </div>
+
+{% endblock %}

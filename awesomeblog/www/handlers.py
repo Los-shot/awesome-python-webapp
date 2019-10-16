@@ -131,36 +131,75 @@ def manage_blog_edit(request):
             '__template__':'signin.html'
         }
 
-@get('/manage/blogs')
-def manage_blogs(request):
+@get('/manage')
+def manage(request):
     if request.__user__:
         page = getQueryString(request,'page') or 1
         
         return {
             'page_index' : page,
-            '__template__':'manage_blogs.html'
+            '__template__':'manage.html'
         }
     else:
         return {
             '__template__':'signin.html'
         }
 
-@post('/api/manage/blogs')
-async def api_manage_blogs(request):
+async def api_manage_blogs(page_index,user_id):
+    num = await Blog.findNumber('id',' where %s = \'%s\'' % ('user_id',user_id))
+    page = Page(num,page_index)
+    extra = ''
+    if page.page_index < 100:
+        extra = ' order by created_at desc limit %s,%s' % (page.offset,page.limit)
+    else:
+        extra = ' and created_at <= (select created_at from blogs where user_id = \'%s\' order by created_at desc limit %s,1) order by created_at desc limit %s' % (request.__user__.id,page.offset,page.limit)
+    blogs = await Blog.findAll("user_id",user_id,extra)
+    return (blogs,page)
+
+async def api_manage_comments(page_index,user_id):
+    num = await Comment.findNumber('id',' where %s = \'%s\'' % ('user_id',user_id))
+    page = Page(num,page_index)
+    extra = ''
+    if page.page_index < 100:
+        extra = ' order by created_at desc limit %s,%s' % (page.offset,page.limit)
+    else:
+        extra = ' and created_at <= (select created_at from comments where user_id = \'%s\' order by created_at desc limit %s,1) order by created_at desc limit %s' % (request.__user__.id,page.offset,page.limit)
+    comments = await Comment.findAll("user_id",user_id,extra)
+
+    for comment in comments:
+        blog = await Blog.find(comment.get('blog_id'))
+        comment['blog_name'] = blog.name
+    return (comments,page)
+
+async def api_manage_users(page_index):
+    num = await User.findNumber('id')
+    page = Page(num,page_index)
+    extra = ''
+    if page.page_index < 100:
+        extra = ' order by created_at desc limit %s,%s' % (page.offset,page.limit)
+    else:
+        extra = ' and created_at <= (select created_at from users order by created_at desc limit %s,1) order by created_at desc limit %s' % (page.offset,page.limit)
+    users = await User.sql_select(extra)
+    return (users,page)
+
+@post('/api/manage')
+async def api_manage(request):
     result = {}
 
     if request.__user__:
         params = await parse_post_params(request)
-        page_index:int = int(params.get('page','1'))
-        num = await Blog.findNumber('id',' where %s = \'%s\'' % ('user_id',request.__user__.id))
-        page = Page(num,page_index)
-        extra = ''
-        if page.page_index < 100:
-            extra = ' order by created_at desc limit %s,%s' % (page.offset,page.limit)
-        else:
-            extra = ' and created_at <= (select created_at from blogs where user_id = \'%s\' order by created_at desc limit %s,1) order by created_at desc limit %s' % (request.__user__.id,page.offset,page.limit)
-        result["blogs"] = await Blog.findAll("user_id",request.__user__.id,extra)
-        
+        pageTag:str = params.get('pageTag','part_blog')
+        page_index:int = int(params.get('pageIndex',1))
+        items,page = None,None
+
+        if pageTag == 'part_blog':
+            items,page = await api_manage_blogs(page_index,request.__user__.id)
+        elif pageTag == 'part_comment':
+            items,page = await api_manage_comments(page_index,request.__user__.id) 
+        elif pageTag == 'part_user':
+            items,page = await api_manage_users(page_index)
+
+        result["items"] = items
         result['page'] = {'page_count':page.page_count,'page_index':page.page_index}
         result['status'] = 'ok'
     else:
@@ -304,8 +343,8 @@ async def api_create_comment(request):
     
     return resp
 
-@post('/api/get/comment')
-async def api_get_comment(request):
+@post('/api/get/comments')
+async def api_get_comments(request):
     result = {}
 
     if request.__user__:
@@ -316,6 +355,29 @@ async def api_get_comment(request):
         comments = await Comment.findAll("blog_id",blog_id)
 
         result["comments"] = comments
+        result['status'] = 'ok'
+    else:
+        result['status'] = 'fail'
+        result['msg'] = 'novail'
+
+    resp = web.Response()
+    resp.content_type = 'application/json'
+    resp.body = json.dumps(result,ensure_ascii = False).encode('utf-8')
+    
+    return resp
+
+@post('/api/delete/comment')
+async def api_delete_comment(request):
+    result = {}
+
+    if request.__user__:
+        user = request.__user__
+        params = await parse_post_params(request)
+
+        id:str = params.get('id',None)
+
+        await Comment.remove(id)
+
         result['status'] = 'ok'
     else:
         result['status'] = 'fail'

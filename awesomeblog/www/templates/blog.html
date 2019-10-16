@@ -68,7 +68,7 @@
     }
 
     $(function() {
-        $.post('/api/get/comment', {blog_id:blog_id}).done(function (data) {
+        $.post('/api/get/comments', {blog_id:blog_id}).done(function (data) {
             if(data && data.status === 'ok'){
                 initVM(data.comments);
                 $('#vm').show();

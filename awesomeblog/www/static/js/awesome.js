@@ -13,8 +13,15 @@ Awesome.prototype.setUser = function(user){
     this.user = user;
 }
 
-Awesome.prototype.getUser = function(user){
-    return this.user;
+Awesome.prototype.getUser = function(){
+    return $('#member')[0].innerText ? JSON.parse($('#member')[0].innerText.replace(/\'/g,'\"')) : '';
+}
+
+Awesome.prototype.getAdmin = function(){
+    let user = this.getUser();
+    if(user)
+        return user.admin !== 0;
+    return false;
 }
 
 Awesome.prototype.getQueryString = function(name){
